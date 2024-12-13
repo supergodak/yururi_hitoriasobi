@@ -35,15 +35,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeAuth: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // プロファイルの取得を試みる
+      if (session?.user && session.user.email_confirmed_at) { // メール確認済みの場合のみログイン状態にする
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
-        // プロファイルが存在しない場合は作成
         if (!profile) {
           await get().createProfile(
             session.user.id,
@@ -75,15 +73,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      if (user) {
-        // プロファイルの存在確認
+      if (user && user.email_confirmed_at) { // メール確認済みの場合のみログイン状態にする
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        // プロファイルが存在しない場合は作成
         if (!profile) {
           await get().createProfile(
             user.id,
@@ -150,27 +146,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      // メール確認が必要な場合（identities.length === 0）
-      if (!data.user || data.user.identities?.length === 0) {
-        return { confirmationSent: true };
-      }
-
-      // メール確認が不要な場合のみプロフィールを作成
-      await get().createProfile(
-        data.user.id,
-        data.user.email!,
-        data.user.user_metadata.name
-      );
-
-      set({
-        user: {
-          id: data.user.id,
-          email: data.user.email!,
-          name: data.user.user_metadata.name,
-        },
-      });
-
-      return { confirmationSent: false };
+      // メール確認が必要な場合は、ユーザー情報をストアに設定しない
+      return { confirmationSent: true };
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '新規登録エラーが発生しました' });
       throw error;
