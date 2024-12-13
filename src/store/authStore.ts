@@ -9,33 +9,23 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ confirmationSent: boolean }>;
   initializeAuth: () => Promise<void>;
   createProfile: (userId: string, email: string, name?: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  loading: true,
+  loading: false,
   error: null,
 
   createProfile: async (userId: string, email: string, name?: string) => {
     try {
-      // プロフィールが存在するか確認
-      const { data: existingProfile } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+        .insert([{ id: userId, email, name }]);
 
-      if (!existingProfile) {
-        // プロフィールが存在しない場合のみ作成
-        const { error } = await supabase
-          .from('profiles')
-          .insert([{ id: userId, email, name }]);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
     } catch (error) {
       console.error('Error creating profile:', error);
       throw error;
@@ -45,16 +35,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initializeAuth: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session?.user) {
-        // プロフィールの取得を試みる
+        // プロファイルの取得を試みる
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
-        // プロフィールが存在しない場合は作成
+        // プロファイルが存在しない場合は作成
         if (!profile) {
           await get().createProfile(
             session.user.id,
@@ -69,29 +58,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             email: session.user.email!,
             name: session.user.user_metadata.name,
           },
-          loading: false,
         });
-      } else {
-        set({ user: null, loading: false });
       }
-
-      // 認証状態の変更を監視
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
-          set({
-            user: {
-              id: session.user.id,
-              email: session.user.email!,
-              name: session.user.user_metadata.name,
-            },
-          });
-        } else {
-          set({ user: null });
-        }
-      });
     } catch (error) {
       console.error('Error initializing auth:', error);
-      set({ user: null, loading: false });
     }
   },
 
@@ -106,14 +76,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       if (user) {
-        // プロフィールの存在確認
+        // プロファイルの存在確認
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        // プロフィールが存在しない場合は作成
+        // プロファイルが存在しない場合は作成
         if (!profile) {
           await get().createProfile(
             user.id,
@@ -145,10 +115,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
         },
       });
       if (error) throw error;
@@ -177,28 +143,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
-      const { data: { user }, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
 
-      if (user) {
+      // メール確認が必要な場合
+      if (data?.user?.identities?.length === 0) {
+        set({ loading: false });
+        return { confirmationSent: true };
+      }
+
+      if (data.user) {
         await get().createProfile(
-          user.id,
-          user.email!,
-          user.user_metadata.name
+          data.user.id,
+          data.user.email!,
+          data.user.user_metadata.name
         );
 
         set({
           user: {
-            id: user.id,
-            email: user.email!,
-            name: user.user_metadata.name,
+            id: data.user.id,
+            email: data.user.email!,
+            name: data.user.user_metadata.name,
           },
         });
       }
+
+      return { confirmationSent: false };
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '新規登録エラーが発生しました' });
       throw error;
