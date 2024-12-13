@@ -150,27 +150,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      // メール確認が必要な場合
-      if (data?.user?.identities?.length === 0) {
+      // メール確認が必要な場合（identities.length === 0）
+      if (!data.user || data.user.identities?.length === 0) {
         return { confirmationSent: true };
       }
 
-      // メール確認が不要な場合（すでに確認済み）
-      if (data.user) {
-        await get().createProfile(
-          data.user.id,
-          data.user.email!,
-          data.user.user_metadata.name
-        );
+      // メール確認が不要な場合のみプロフィールを作成
+      await get().createProfile(
+        data.user.id,
+        data.user.email!,
+        data.user.user_metadata.name
+      );
 
-        set({
-          user: {
-            id: data.user.id,
-            email: data.user.email!,
-            name: data.user.user_metadata.name,
-          },
-        });
-      }
+      set({
+        user: {
+          id: data.user.id,
+          email: data.user.email!,
+          name: data.user.user_metadata.name,
+        },
+      });
 
       return { confirmationSent: false };
     } catch (error) {
