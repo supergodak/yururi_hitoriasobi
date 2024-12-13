@@ -156,6 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return { confirmationSent: true };
       }
 
+      // メール確認が不要な場合（すでに確認済み）
       if (data.user) {
         await get().createProfile(
           data.user.id,
