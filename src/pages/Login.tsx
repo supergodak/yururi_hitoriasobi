@@ -24,7 +24,11 @@ export default function Login() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '認証エラーが発生しました');
+      if (err instanceof Error && err.message.includes('Email not confirmed')) {
+        setConfirmationSent(true);
+      } else {
+        setError(err instanceof Error ? err.message : '認証エラーが発生しました');
+      }
     }
   };
 
