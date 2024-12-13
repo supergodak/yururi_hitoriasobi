@@ -14,9 +14,9 @@ interface AuthState {
   createProfile: (userId: string, email: string, name?: string) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  loading: false,
+  loading: true,
   error: null,
 
   createProfile: async (userId: string, email: string, name?: string) => {
@@ -45,12 +45,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   initializeAuth: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (session?.user) {
-        await useAuthStore.getState().createProfile(
-          session.user.id,
-          session.user.email!,
-          session.user.user_metadata.name
-        );
+        // プロフィールの取得を試みる
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        // プロフィールが存在しない場合は作成
+        if (!profile) {
+          await get().createProfile(
+            session.user.id,
+            session.user.email!,
+            session.user.user_metadata.name
+          );
+        }
 
         set({
           user: {
@@ -58,29 +69,58 @@ export const useAuthStore = create<AuthState>((set) => ({
             email: session.user.email!,
             name: session.user.user_metadata.name,
           },
+          loading: false,
         });
+      } else {
+        set({ user: null, loading: false });
       }
+
+      // 認証状態の変更を監視
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          set({
+            user: {
+              id: session.user.id,
+              email: session.user.email!,
+              name: session.user.user_metadata.name,
+            },
+          });
+        } else {
+          set({ user: null });
+        }
+      });
     } catch (error) {
       console.error('Error initializing auth:', error);
-    } finally {
-      set({ loading: false });
+      set({ user: null, loading: false });
     }
   },
 
-  signIn: async (email, password) => {
+  signIn: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
       const { data: { user }, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
       if (error) throw error;
+
       if (user) {
-        await useAuthStore.getState().createProfile(
-          user.id,
-          user.email!,
-          user.user_metadata.name
-        );
+        // プロフィールの存在確認
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        // プロフィールが存在しない場合は作成
+        if (!profile) {
+          await get().createProfile(
+            user.id,
+            user.email!,
+            user.user_metadata.name
+          );
+        }
 
         set({
           user: {
@@ -104,7 +144,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: window.location.origin,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       if (error) throw error;
@@ -119,26 +163,29 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     set({ loading: true, error: null });
     try {
-      await supabase.auth.signOut();
-      set({ user: null, error: null });
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      set({ user: null });
     } catch (error) {
-      console.error('Error signing out:', error);
       set({ error: error instanceof Error ? error.message : 'ログアウトエラーが発生しました' });
+      throw error;
     } finally {
       set({ loading: false });
     }
   },
 
-  signUp: async (email, password) => {
+  signUp: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
       const { data: { user }, error } = await supabase.auth.signUp({
         email,
         password,
       });
+
       if (error) throw error;
+
       if (user) {
-        await useAuthStore.getState().createProfile(
+        await get().createProfile(
           user.id,
           user.email!,
           user.user_metadata.name
