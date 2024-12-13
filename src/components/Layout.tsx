@@ -21,7 +21,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link to="/" className="flex items-center">
@@ -63,12 +63,12 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-[1280px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
 
       <footer className="bg-white border-t">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-center space-x-4 mb-4">
             <Link to="/terms" className="text-sm text-gray-600 hover:text-gray-900">
               利用規約
