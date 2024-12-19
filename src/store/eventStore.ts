@@ -90,12 +90,11 @@ export const useEventStore = create<EventState>((set, get) => ({
 
       if (dateOptionsError) throw dateOptionsError;
 
-      // 参加者情報の取得（response が null のレコードは除外）
+      // 参加者情報の取得
       const { data: participantsData, error: participantsError } = await supabase
         .from('participants')
         .select('*')
-        .eq('event_id', eventId)
-        .not('response', 'is', null);
+        .eq('event_id', eventId);
 
       if (participantsError) throw participantsError;
 
@@ -160,14 +159,14 @@ export const useEventStore = create<EventState>((set, get) => ({
 
       if (dateOptionsError) throw dateOptionsError;
 
-      // 参加者の登録（response は null で登録）
+      // 参加者の登録
       if (participants.length > 0 && dateOptionsData) {
         const participantsData = dateOptionsData.flatMap((dateOption) =>
           participants.map((email) => ({
             event_id: event.id,
             date_option_id: dateOption.id,
             email,
-            response: null,
+            response: 'no' as const,
           }))
         );
 
@@ -184,6 +183,7 @@ export const useEventStore = create<EventState>((set, get) => ({
               to: email,
               eventTitle: title,
               eventUrl: `${window.location.origin}/events/${event.id}`,
+              description,
             })
           )
         );

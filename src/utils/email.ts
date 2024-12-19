@@ -5,6 +5,7 @@ interface SendEventCreationEmailParams {
   to: string;
   eventTitle: string;
   eventUrl: string;
+  description?: string;
 }
 
 interface SendEventParticipationEmailParams {
@@ -17,6 +18,7 @@ export async function sendEventCreationEmail({
   to,
   eventTitle,
   eventUrl,
+  description,
 }: SendEventCreationEmailParams): Promise<void> {
   try {
     const token = generateInvitationToken(to, eventUrl.split('/').pop()!);
@@ -27,9 +29,12 @@ export async function sendEventCreationEmail({
       import.meta.env.VITE_EMAILJS_INVITATION_TEMPLATE_ID,
       {
         to_email: to,
-        event_title: eventTitle,
-        event_url: invitationUrl,
+        from_name: 'ゆるりスケジュール調整所',
         recipient: to,
+        event_title: eventTitle,
+        event_description: description || '',
+        event_url: invitationUrl,
+        message: '', // 空の場合でも必要
       },
       import.meta.env.VITE_EMAILJS_PUBLIC_KEY
     );
@@ -46,7 +51,10 @@ export async function sendEventParticipationEmail({
 }: SendEventParticipationEmailParams): Promise<void> {
   try {
     const responsesSummary = Object.entries(responses)
-      .map(([dateId, response]) => `${dateId}: ${response}`)
+      .map(([dateId, response]) => {
+        const symbol = response === 'yes' ? '○' : response === 'no' ? '×' : '△';
+        return `${dateId}: ${symbol}`;
+      })
       .join('\n');
 
     await emailjs.send(
@@ -57,7 +65,6 @@ export async function sendEventParticipationEmail({
         event_id: eventId,
         responses: responsesSummary,
         event_url: `${window.location.origin}/events/${eventId}`,
-        recipient: to,
       },
       import.meta.env.VITE_EMAILJS_PUBLIC_KEY
     );
