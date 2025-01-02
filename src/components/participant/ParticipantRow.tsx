@@ -29,7 +29,9 @@ export function ParticipantRow({
         <div className="text-sm font-medium text-gray-900">
           {participant.name || '名前未設定'}
         </div>
-        <div className="text-sm text-gray-500">{participant.email}</div>
+        <div className="text-sm text-gray-500">
+          {participant.email}
+        </div>
       </td>
       {dateOptions.map((option) => (
         <ResponseCell

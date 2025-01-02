@@ -18,9 +18,14 @@ export default function ParticipantList({
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <h2 className="text-lg font-semibold text-gray-900 p-6 pb-4">
-        参加者一覧
-      </h2>
+      <div className="p-6 pb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          回答した人
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">
+          ※未回答の人は表示されません
+        </p>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

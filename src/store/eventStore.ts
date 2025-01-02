@@ -90,19 +90,29 @@ export const useEventStore = create<EventState>((set, get) => ({
 
       if (dateOptionsError) throw dateOptionsError;
 
-      // 参加者情報の取得
+      // 参加者情報の取得（最新の回答を取得）
       const { data: participantsData, error: participantsError } = await supabase
         .from('participants')
         .select('*')
-        .eq('event_id', eventId);
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false }); // 作成日時の降順でソート
 
       if (participantsError) throw participantsError;
+
+      // 同じメールアドレスと日時オプションの組み合わせに対して最新の回答のみを使用
+      const latestParticipants = participantsData?.reduce((acc, current) => {
+        const key = `${current.email}-${current.date_option_id}`;
+        if (!acc[key]) {
+          acc[key] = current;
+        }
+        return acc;
+      }, {} as Record<string, typeof participantsData[0]>);
 
       set({
         currentEvent: eventData,
         venueOptions: venueOptionsData || [],
         dateOptions: dateOptionsData || [],
-        participants: participantsData || [],
+        participants: Object.values(latestParticipants || {}),
       });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '予期せぬエラーが発生しました' });
