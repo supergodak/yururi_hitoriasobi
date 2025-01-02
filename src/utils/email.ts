@@ -1,5 +1,7 @@
 import emailjs from '@emailjs/browser';
 import { generateInvitationToken } from './invitation';
+import { supabase } from '../lib/supabase';
+import { formatDate } from './date';
 
 interface SendEventCreationEmailParams {
   to: string;
@@ -36,7 +38,7 @@ export async function sendEventCreationEmail({
         event_title: eventTitle,
         event_description: description || '',
         event_url: invitationUrl,
-        message: '', // 空の場合でも必要
+        message: '',
       },
       import.meta.env.VITE_EMAILJS_PUBLIC_KEY
     );
@@ -54,23 +56,36 @@ export async function sendEventParticipationEmail({
   participantName,
 }: SendEventParticipationEmailParams): Promise<void> {
   try {
-    const responsesSummary = Object.entries(responses)
-      .map(([dateId, response]) => {
+    // 日時オプションの情報を取得
+    const { data: dateOptions } = await supabase
+      .from('date_options')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('date', { ascending: true });
+
+    if (!dateOptions) throw new Error('日時オプションが見つかりません');
+
+    // 人間が読める形式で回答を整形
+    const responsesSummary = dateOptions
+      .map((option) => {
+        const response = responses[option.id];
         const symbol = response === 'yes' ? '○' : response === 'no' ? '×' : '△';
-        return `${dateId}: ${symbol}`;
+        return `${formatDate(option.date)} ${option.start_time}〜${option.end_time}: ${symbol}`;
       })
       .join('\n');
+
+    const eventUrl = `${window.location.origin}/events/${eventId}`;
 
     await emailjs.send(
       import.meta.env.VITE_EMAILJS_SERVICE_ID,
       import.meta.env.VITE_EMAILJS_RESPONSE_TEMPLATE_ID,
       {
-        to_email: to, // イベント作成者のメールアドレス
+        to_email: to,
         event_id: eventId,
         participant_email: participantEmail,
         participant_name: participantName || '名前未設定',
         responses: responsesSummary,
-        event_url: `${window.location.origin}/events/${eventId}`,
+        event_url: eventUrl,
       },
       import.meta.env.VITE_EMAILJS_PUBLIC_KEY
     );
