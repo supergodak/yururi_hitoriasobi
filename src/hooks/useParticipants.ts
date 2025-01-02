@@ -13,7 +13,7 @@ export function useParticipants(participants: Participant[]) {
     ).length;
   };
 
-  // 回答済みの参加者のリストを取得（nullの回答は除外）
+  // 少なくとも1つの回答をした参加者のリストを取得
   const uniqueParticipants = Array.from(
     new Set(
       participants
@@ -32,4 +32,4 @@ export function useParticipants(participants: Participant[]) {
     uniqueParticipants,
     getResponseCount,
   };
-}
+};
