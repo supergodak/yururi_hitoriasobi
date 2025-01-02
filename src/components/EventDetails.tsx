@@ -42,18 +42,16 @@ export default function EventDetails({ eventId, invitedEmail }: EventDetailsProp
     return <div>イベントが見つかりません</div>;
   }
 
-  // ログインユーザーまたは招待された参加者のみアクセス可能
-  const canAccess = user || invitedEmail;
+  const isCreator = user?.id === currentEvent.creator_id;
 
-  if (!canAccess) {
+  // 未認証状態でも招待メールのトークンがある場合はアクセス可能
+  if (!user && !invitedEmail) {
     return (
       <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg">
         このURLは無効です。招待メールに記載されたURLからアクセスしてください。
       </div>
     );
   }
-
-  const isCreator = user?.id === currentEvent.creator_id;
 
   const handleDelete = async () => {
     if (!isCreator) return;
