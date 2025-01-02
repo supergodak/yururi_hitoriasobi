@@ -27,6 +27,23 @@ export function useEventParticipation({
     setError(null);
 
     try {
+      // イベント作成者のメールアドレスを取得
+      const { data: event, error: eventError } = await supabase
+        .from('events')
+        .select('creator_id')
+        .eq('id', eventId)
+        .single();
+
+      if (eventError) throw eventError;
+
+      const { data: creator, error: creatorError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', event.creator_id)
+        .single();
+
+      if (creatorError) throw creatorError;
+
       // 既存の回答を削除
       await supabase
         .from('participants')
@@ -52,9 +69,9 @@ export function useEventParticipation({
         throw new Error('回答の登録中にエラーが発生しました');
       }
 
-      // メール通知
+      // イベント作成者にメール通知
       await sendEventParticipationEmail({
-        to: email,
+        to: creator.email,
         eventId,
         responses,
         participantEmail: email,

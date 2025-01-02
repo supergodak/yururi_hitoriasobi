@@ -1,9 +1,7 @@
 export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('ja-JP', {
     year: 'numeric',
-    month: 'long',
+    month: 'numeric',
     day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  }).replace(/\//g, '年').replace(/\//g, '月') + '日';
 }
