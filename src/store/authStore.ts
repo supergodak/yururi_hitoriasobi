@@ -34,40 +34,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initializeAuth: async () => {
     try {
-      // セッションの監視を設定
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (session?.user && session.user.email_confirmed_at) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (!profile) {
-              await get().createProfile(
-                session.user.id,
-                session.user.email!,
-                session.user.user_metadata.name
-              );
-            }
-
-            set({
-              user: {
-                id: session.user.id,
-                email: session.user.email!,
-                name: session.user.user_metadata.name,
-              },
-            });
-          } else {
-            set({ user: null });
-          }
-        }
-      );
-
-      // 初期セッションの確認
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user && session.user.email_confirmed_at) {
+      if (session?.user && session.user.email_confirmed_at) { // メール確認済みの場合のみログイン状態にする
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -90,14 +58,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           },
         });
       }
-
-      // クリーンアップ関数を返す
-      return () => {
-        subscription.unsubscribe();
-      };
     } catch (error) {
       console.error('Error initializing auth:', error);
-      set({ user: null });
     }
   },
 
@@ -111,8 +73,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      if (!user?.email_confirmed_at) {
-        throw new Error('Email not confirmed');
+      if (user && user.email_confirmed_at) { // メール確認済みの場合のみログイン状態にする
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile) {
+          await get().createProfile(
+            user.id,
+            user.email!,
+            user.user_metadata.name
+          );
+        }
+
+        set({
+          user: {
+            id: user.id,
+            email: user.email!,
+            name: user.user_metadata.name,
+          },
+        });
       }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'ログインエラーが発生しました' });
@@ -157,12 +139,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // メール確認が必要な場合は、ユーザー情報をストアに設定しない
       return { confirmationSent: true };
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '新規登録エラーが発生しました' });
