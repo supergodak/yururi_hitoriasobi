@@ -6,14 +6,20 @@ interface UniqueParticipant {
 }
 
 export function useParticipants(participants: Participant[]) {
+  // 特定の日時オプションと回答に対する回答者数を取得
   const getResponseCount = (dateOptionId: string, response: 'yes' | 'no' | 'maybe') => {
     return participants.filter(
       (p) => p.date_option_id === dateOptionId && p.response === response
     ).length;
   };
 
+  // 回答済みの参加者のリストを取得（nullの回答は除外）
   const uniqueParticipants = Array.from(
-    new Set(participants.map((p) => p.email))
+    new Set(
+      participants
+        .filter(p => p.response !== null)
+        .map(p => p.email)
+    )
   ).map((email) => {
     const participant = participants.find((p) => p.email === email);
     return {

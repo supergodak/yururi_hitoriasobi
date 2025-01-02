@@ -166,7 +166,7 @@ export const useEventStore = create<EventState>((set, get) => ({
             event_id: event.id,
             date_option_id: dateOption.id,
             email,
-            response: 'no' as const,
+            response: null,
           }))
         );
 

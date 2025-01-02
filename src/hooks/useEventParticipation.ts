@@ -20,7 +20,8 @@ export function useEventParticipation({
   const submitParticipation = async (
     email: string,
     name: string | undefined,
-    responses: Record<string, 'yes' | 'no' | 'maybe'>
+    responses: Record<string, 'yes' | 'no' | 'maybe'>,
+    venueOptionId?: string
   ) => {
     setLoading(true);
     setError(null);
@@ -39,6 +40,7 @@ export function useEventParticipation({
         email,
         name,
         response: responses[option.id] || 'no',
+        venue_option_id: venueOptionId,
       }));
 
       const { error: insertError } = await supabase
@@ -55,6 +57,8 @@ export function useEventParticipation({
         to: email,
         eventId,
         responses,
+        participantEmail: email,
+        participantName: name,
       });
 
       onParticipationUpdate();

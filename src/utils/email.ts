@@ -12,6 +12,8 @@ interface SendEventParticipationEmailParams {
   to: string;
   eventId: string;
   responses: Record<string, 'yes' | 'no' | 'maybe'>;
+  participantEmail: string;
+  participantName?: string;
 }
 
 export async function sendEventCreationEmail({
@@ -48,6 +50,8 @@ export async function sendEventParticipationEmail({
   to,
   eventId,
   responses,
+  participantEmail,
+  participantName,
 }: SendEventParticipationEmailParams): Promise<void> {
   try {
     const responsesSummary = Object.entries(responses)
@@ -61,8 +65,10 @@ export async function sendEventParticipationEmail({
       import.meta.env.VITE_EMAILJS_SERVICE_ID,
       import.meta.env.VITE_EMAILJS_RESPONSE_TEMPLATE_ID,
       {
-        to_email: to,
+        to_email: to, // イベント作成者のメールアドレス
         event_id: eventId,
+        participant_email: participantEmail,
+        participant_name: participantName || '名前未設定',
         responses: responsesSummary,
         event_url: `${window.location.origin}/events/${eventId}`,
       },

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import type { DateOption } from '../types';
+import type { DateOption, VenueOption } from '../types';
 import { useEventParticipation } from '../hooks/useEventParticipation';
 
 interface ResponseFormProps {
   eventId: string;
   dateOptions: DateOption[];
+  venueOptions: VenueOption[];
   invitedEmail: string | null;
 }
 
 export default function ResponseForm({
   eventId,
   dateOptions,
+  venueOptions,
   invitedEmail,
 }: ResponseFormProps) {
   const [email, setEmail] = useState('');
@@ -100,7 +102,11 @@ export default function ResponseForm({
         </div>
       </div>
 
+      {/* 日時の選択 */}
       <div className="space-y-4">
+        <h3 className="text-sm font-medium text-gray-700">
+          候補日時の回答
+        </h3>
         {dateOptions.map((option) => (
           <div key={option.id} className="border rounded-md p-4">
             <p className="font-medium text-gray-900 mb-2">
@@ -120,6 +126,7 @@ export default function ResponseForm({
                         [option.id]: e.target.value as 'yes' | 'no' | 'maybe',
                       }))
                     }
+                    required
                     className="form-radio h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">
